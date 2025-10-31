@@ -26,7 +26,7 @@ class Cache
         $this->logger->debug("SimpleFSCache\Cache::__destruct");
     }
 
-    public function isEnabled()
+    public function isEnabled(): bool
     {
         return ($this->enabled);
     }
