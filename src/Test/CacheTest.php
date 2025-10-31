@@ -45,7 +45,7 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
     public function testGet(): void
     {
         $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::TXT, parent::$cachePath);
-        $content = "foobar";
+        $content = "foobar1";
         $hash = md5($content);
         $this->assertTrue($this->cache->save($hash, $content));
         $cachedContent = $this->cache->get($hash);
@@ -53,6 +53,15 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
         $this->assertIsString($cachedContent);
         $this->assertNotEmpty($cachedContent);
         $this->assertEquals($content, $cachedContent);
+    }
+
+    public function testGetIgnoringExistingCache(): void
+    {
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::TXT, parent::$cachePath, true);
+        $content = "foobar2";
+        $hash = md5($content);
+        $this->assertTrue($this->cache->save($hash, $content));
+        $this->assertFalse($this->cache->get($hash));
     }
 
     public function testRemove(): void
