@@ -9,7 +9,6 @@ require_once dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . "vendor" . DIRECT
 
 final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
 {
-
     protected \aportela\SimpleFSCache\Cache $cache;
 
     /**
