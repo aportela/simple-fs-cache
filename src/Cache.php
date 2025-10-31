@@ -33,6 +33,11 @@ class Cache
         return ($this->enabled);
     }
 
+    public function setFormat(\aportela\SimpleFSCache\CacheFormat $format): void
+    {
+        $this->format = $format;
+    }
+
     /**
      * return cache directory path
      */
