@@ -1,6 +1,6 @@
 {
   "name": "aportela/simple-fs-cache",
-  "description": " Custom php filesystem cache",
+  "description": "Custom php filesystem cache",
   "type": "library",
   "license": "AGPL-3.0-only",
   "authors": [
