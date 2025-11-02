@@ -14,17 +14,7 @@ class Cache
     public function __construct(\Psr\Log\LoggerInterface $logger, \aportela\SimpleFSCache\CacheFormat $format = \aportela\SimpleFSCache\CacheFormat::NONE, ?string $path = null, bool $ignoreExistingCache = false)
     {
         $this->logger = $logger;
-        if (! empty($path)) {
-            if (!file_exists(($path))) {
-                $this->logger->info("\aportela\SimpleFSCache\Cache::__construct - Creating missing path: {$path}");
-                if (! mkdir($path, 0750)) {
-                    $this->logger->error("\aportela\SimpleFSCache\Cache::__construct - Error creating missing path: {$path}");
-                    throw new \Exception("Error creating missing path: {$path}");
-                }
-            }
-            $this->path = ($path = realpath($path)) ? $path : null;
-        }
-        $this->enabled = ! empty($this->path);
+        $this->setPath($path);
         $this->format = $format;
         $this->ignoreExistingCache = $ignoreExistingCache;
     }
@@ -36,6 +26,21 @@ class Cache
     public function isEnabled(): bool
     {
         return ($this->enabled);
+    }
+
+    public function setPath(?string $path = null): void
+    {
+        if (! empty($path)) {
+            if (!file_exists(($path))) {
+                $this->logger->info("\aportela\SimpleFSCache\Cache::__construct - Creating missing path: {$path}");
+                if (! mkdir($path, 0750)) {
+                    $this->logger->error("\aportela\SimpleFSCache\Cache::__construct - Error creating missing path: {$path}");
+                    throw new \Exception("Error creating missing path: {$path}");
+                }
+            }
+            $this->path = ($path = realpath($path)) ? $path : null;
+        }
+        $this->enabled = ! empty($this->path);
     }
 
     public function setFormat(\aportela\SimpleFSCache\CacheFormat $format): void
