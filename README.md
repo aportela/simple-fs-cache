@@ -12,7 +12,7 @@ Custom php filesystem cache
 composer require aportela/simple-fs-cache
 ```
 
-## Code example (from remote picture):
+## Code example:
 
 ```php
 <?php
@@ -26,6 +26,7 @@ composer require aportela/simple-fs-cache
     $cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::TXT, $cachePath, false);
 
     $data = "this is the data to store in cache";
+    // you can use another hash algorithm if you don't trust that MD5 value is unique
     $cacheUniqueIdentifier = md5($data);
 
     if ($cache->save($cacheUniqueIdentifier, $data)) {
