@@ -6,41 +6,46 @@ class Cache
 {
     protected \Psr\Log\LoggerInterface $logger;
 
-    private ?string $path = null;
+    private ?string $basePath = null;
     private bool $enabled = true;
     private \aportela\SimpleFSCache\CacheFormat $format;
     private bool $ignoreExistingCache = false;
 
-    public function __construct(\Psr\Log\LoggerInterface $logger, \aportela\SimpleFSCache\CacheFormat $format = \aportela\SimpleFSCache\CacheFormat::NONE, ?string $path = null, bool $ignoreExistingCache = false)
+    public function __construct(\Psr\Log\LoggerInterface $logger, \aportela\SimpleFSCache\CacheFormat $format = \aportela\SimpleFSCache\CacheFormat::NONE, ?string $basePath = null, bool $ignoreExistingCache = false)
     {
         $this->logger = $logger;
-        $this->setPath($path);
+        $this->setBasePath($basePath);
         $this->format = $format;
         $this->ignoreExistingCache = $ignoreExistingCache;
     }
 
-    public function __destruct()
-    {
-    }
+    public function __destruct() {}
 
     public function isEnabled(): bool
     {
         return ($this->enabled);
     }
 
-    public function setPath(?string $path = null): void
+    public function setBasePath(?string $basePath = null): void
     {
-        if (! empty($path)) {
-            if (!file_exists(($path))) {
-                $this->logger->info("\aportela\SimpleFSCache\Cache::__construct - Creating missing path: {$path}");
-                if (! mkdir($path, 0750)) {
-                    $this->logger->error("\aportela\SimpleFSCache\Cache::__construct - Error creating missing path: {$path}");
-                    throw new \Exception("Error creating missing path: {$path}");
+        if (! empty($basePath)) {
+            if (!file_exists(($basePath))) {
+                $this->logger->info("\aportela\SimpleFSCache\Cache::setBasePath - Creating missing path: {$basePath}");
+                if (! mkdir($basePath, 0750)) {
+                    $this->logger->error("\aportela\SimpleFSCache\Cache::__construct - Error creating missing path: {$basePath}");
+                    throw new \Exception("Error creating missing path: {$basePath}");
                 }
             }
-            $this->path = ($path = realpath($path)) ? $path : null;
+            $this->basePath = ($basePath = realpath($basePath)) ? $basePath : null;
+        } else {
+            $this->logger->info("\aportela\SimpleFSCache\Cache::setBasePath - empty value");
         }
-        $this->enabled = ! empty($this->path);
+        $this->enabled = ! empty($this->basePath);
+    }
+
+    public function getBasePath(): null|string
+    {
+        return ($this->basePath);
     }
 
     public function setFormat(\aportela\SimpleFSCache\CacheFormat $format): void
@@ -48,12 +53,17 @@ class Cache
         $this->format = $format;
     }
 
+    public function getFormat(): \aportela\SimpleFSCache\CacheFormat
+    {
+        return ($this->format);
+    }
+
     /**
      * return cache directory path
      */
     private function getCacheDirectoryPath(string $identifier): string
     {
-        return ($this->path . DIRECTORY_SEPARATOR . mb_substr($identifier, 0, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 1, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 2, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 3, 1));
+        return ($this->basePath . DIRECTORY_SEPARATOR . mb_substr($identifier, 0, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 1, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 2, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 3, 1));
     }
 
     /**

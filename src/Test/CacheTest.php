@@ -23,6 +23,10 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
     {
         $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::NONE, parent::$cachePath);
         $this->assertTrue($this->cache->isEnabled());
+        $basePath = $this->cache->getBasePath();
+        $this->assertNotNull($basePath);
+        $this->assertEquals(parent::$cachePath, $basePath);
+        $this->assertEquals(\aportela\SimpleFSCache\CacheFormat::NONE, $this->cache->getFormat());
     }
 
     public function testDisabled(): void
@@ -30,6 +34,8 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
         // empty / invalid paths disable cache
         $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::NONE, null);
         $this->assertFalse($this->cache->isEnabled());
+        $basePath = $this->cache->getBasePath();
+        $this->assertNull($basePath);
     }
 
 
