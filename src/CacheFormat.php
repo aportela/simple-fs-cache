@@ -9,4 +9,6 @@ enum CacheFormat: string
     case XML = "xml";
     case TXT = "txt";
     case HTML = "html";
+    case PNG = "png";
+    case JPG = "jpg";
 }
