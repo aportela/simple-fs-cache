@@ -19,7 +19,9 @@ class Cache
         $this->ignoreExistingCache = $ignoreExistingCache;
     }
 
-    public function __destruct() {}
+    public function __destruct()
+    {
+    }
 
     public function isEnabled(): bool
     {

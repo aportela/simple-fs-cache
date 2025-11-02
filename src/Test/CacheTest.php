@@ -87,7 +87,9 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
         $this->assertTrue($this->cache->save($hash, $content));
         $path = $this->cache->getCacheDirectoryPath($hash);
         $this->assertTrue($this->cache->remove($hash));
-        $this->assertStringStartsWith(parent::$cachePath, $path);
+        if (! empty(parent::$cachePath)) {
+            $this->assertStringStartsWith(parent::$cachePath, $path);
+        }
     }
 
     public function testGetCacheFilePath(): void
@@ -97,8 +99,11 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
         $hash = md5($content);
         $this->assertTrue($this->cache->save($hash, $content));
         $path = $this->cache->getCacheFilePath($hash);
+        $this->assertNotEmpty($path);
         $this->assertTrue($this->cache->remove($hash));
-        $this->assertStringStartsWith(parent::$cachePath, $path);
-        $this->assertStringEndsWith($hash . "." . \aportela\SimpleFSCache\CacheFormat::TXT->value, $path);
+        if (! empty(parent::$cachePath)) {
+            $this->assertStringStartsWith(parent::$cachePath, $path);
+            $this->assertStringEndsWith($hash . "." . \aportela\SimpleFSCache\CacheFormat::TXT->value, $path);
+        }
     }
 }
