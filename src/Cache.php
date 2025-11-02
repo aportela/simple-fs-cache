@@ -6,26 +6,31 @@ class Cache
 {
     protected \Psr\Log\LoggerInterface $logger;
 
-    private ?string $cachePath = null;
+    private ?string $path = null;
     private bool $enabled = true;
     private \aportela\SimpleFSCache\CacheFormat $format;
     private bool $ignoreExistingCache = false;
 
-    public function __construct(\Psr\Log\LoggerInterface $logger, \aportela\SimpleFSCache\CacheFormat $format = \aportela\SimpleFSCache\CacheFormat::NONE, ?string $cachePath = null, bool $ignoreExistingCache = false)
+    public function __construct(\Psr\Log\LoggerInterface $logger, \aportela\SimpleFSCache\CacheFormat $format = \aportela\SimpleFSCache\CacheFormat::NONE, ?string $path = null, bool $ignoreExistingCache = false)
     {
         $this->logger = $logger;
-        $this->logger->debug("SimpleFSCache\Cache::__construct");
-        if (! empty($cachePath)) {
-            $this->cachePath = ($path = realpath($cachePath)) ? $path : null;
+        if (! empty($path)) {
+            if (!file_exists(($path))) {
+                $this->logger->info("\aportela\SimpleFSCache\Cache::__construct - Creating missing path: {$path}");
+                if (! mkdir($path, 0750)) {
+                    $this->logger->error("\aportela\SimpleFSCache\Cache::__construct - Error creating missing path: {$path}");
+                    throw new \Exception("Error creating missing path: {$path}");
+                }
+            }
+            $this->path = ($path = realpath($path)) ? $path : null;
         }
-        $this->enabled = ! empty($this->cachePath);
+        $this->enabled = ! empty($this->path);
         $this->format = $format;
         $this->ignoreExistingCache = $ignoreExistingCache;
     }
 
     public function __destruct()
     {
-        $this->logger->debug("SimpleFSCache\Cache::__destruct");
     }
 
     public function isEnabled(): bool
@@ -43,7 +48,7 @@ class Cache
      */
     private function getCacheDirectoryPath(string $identifier): string
     {
-        return ($this->cachePath . DIRECTORY_SEPARATOR . mb_substr($identifier, 0, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 1, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 2, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 3, 1));
+        return ($this->path . DIRECTORY_SEPARATOR . mb_substr($identifier, 0, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 1, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 2, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 3, 1));
     }
 
     /**
@@ -52,17 +57,10 @@ class Cache
     private function getCacheFilePath(string $identifier): string
     {
         $basePath = $this->getCacheDirectoryPath($identifier);
-        switch ($this->format) {
-            case \aportela\SimpleFSCache\CacheFormat::JSON:
-                return ($basePath . DIRECTORY_SEPARATOR . $identifier . ".json");
-            case \aportela\SimpleFSCache\CacheFormat::XML:
-                return ($basePath . DIRECTORY_SEPARATOR . $identifier . ".xml");
-            case \aportela\SimpleFSCache\CacheFormat::TXT:
-                return ($basePath . DIRECTORY_SEPARATOR . $identifier . ".txt");
-            case \aportela\SimpleFSCache\CacheFormat::HTML:
-                return ($basePath . DIRECTORY_SEPARATOR . $identifier . ".html");
-            default:
-                return ($basePath . DIRECTORY_SEPARATOR . $identifier);
+        if ($this->format !== \aportela\SimpleFSCache\CacheFormat::NONE) {
+            return (sprintf("%s%s%s.%s", $basePath, DIRECTORY_SEPARATOR, $identifier, $this->format->value));
+        } else {
+            return ($basePath . DIRECTORY_SEPARATOR . $identifier);
         }
     }
 
@@ -74,21 +72,20 @@ class Cache
         if ($this->enabled) {
             try {
                 if (! empty(mb_trim($raw))) {
-                    $this->logger->debug("SimpleFSCache\Cache::save", [$identifier, $this->cachePath, $this->getCacheFilePath($identifier)]);
                     $directoryPath = $this->getCacheDirectoryPath($identifier);
                     if (! file_exists($directoryPath)) {
                         if (!mkdir($directoryPath, 0750, true)) {
-                            $this->logger->error("Error creating cache directory", [$identifier, $directoryPath]);
-                            return (false);
+                            $this->logger->error("\aportela\SimpleFSCache\Cache::save - Error creating cache file path", [$identifier, $directoryPath]);
+                            throw new \Exception("Error creating cache file path: {$directoryPath}");
                         }
                     }
                     return (file_put_contents($this->getCacheFilePath($identifier), $raw) > 0);
                 } else {
-                    $this->logger->warning("Cache value is empty, saving ignored", [$identifier]);
+                    $this->logger->info("\aportela\SimpleFSCache\Cache::save - Cache value is empty, saving ignored", [$identifier]);
                     return (false);
                 }
             } catch (\Throwable $e) {
-                $this->logger->error("Error saving cache", [$identifier, $e->getMessage()]);
+                $this->logger->error("\aportela\SimpleFSCache\Cache::save - Error saving cache", [$identifier, $e->getMessage(), $e->getCode()]);
                 return (false);
             }
         } else {
@@ -104,10 +101,15 @@ class Cache
         if ($this->enabled) {
             try {
                 $cacheFilePath = $this->getCacheFilePath($identifier);
-                $this->logger->debug("SimpleFSCache\Cache::remove", [$identifier, $cacheFilePath]);
                 if (file_exists($cacheFilePath)) {
-                    return (unlink($cacheFilePath));
+                    if (unlink($cacheFilePath)) {
+                        return (true);
+                    } else {
+                        $this->logger->error("\aportela\SimpleFSCache\Cache::remove - Error removing cache file", [$identifier, $cacheFilePath]);
+                        return (false);
+                    }
                 } else {
+                    $this->logger->info("\aportela\SimpleFSCache\Cache::remove - Cache file not found, can not remove", [$identifier, $cacheFilePath]);
                     return (false);
                 }
             } catch (\Throwable $e) {
@@ -122,20 +124,19 @@ class Cache
     /**
      * read disk cache
      */
-    public function get(string $identifier): mixed
+    public function get(string $identifier): bool|string
     {
         if ($this->enabled && ! $this->ignoreExistingCache) {
             try {
                 $cacheFilePath = $this->getCacheFilePath($identifier);
-                $this->logger->debug("SimpleFSCache\Cache::get", [$identifier, $cacheFilePath]);
                 if (file_exists($cacheFilePath)) {
                     return (file_get_contents($cacheFilePath));
                 } else {
-                    $this->logger->debug("Cache not found", [$identifier, $this->cachePath, $cacheFilePath]);
+                    $this->logger->debug("\aportela\SimpleFSCache\Cache::get - Cache file not found", [$identifier, $cacheFilePath]);
                     return (false);
                 }
             } catch (\Throwable $e) {
-                $this->logger->error("Error loading cache", [$identifier, $e->getMessage()]);
+                $this->logger->error("\aportela\SimpleFSCache\Cache::get - Error loading cache file", [$identifier, $e->getMessage(), $e->getCode()]);
                 return (false);
             }
         } else {
