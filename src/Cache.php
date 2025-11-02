@@ -61,7 +61,7 @@ class Cache
     /**
      * return cache directory path
      */
-    private function getCacheDirectoryPath(string $identifier): string
+    public function getCacheDirectoryPath(string $identifier): string
     {
         return ($this->basePath . DIRECTORY_SEPARATOR . mb_substr($identifier, 0, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 1, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 2, 1) . DIRECTORY_SEPARATOR . mb_substr($identifier, 3, 1));
     }
@@ -69,7 +69,7 @@ class Cache
     /**
      * return cache file path
      */
-    private function getCacheFilePath(string $identifier): string
+    public function getCacheFilePath(string $identifier): string
     {
         $basePath = $this->getCacheDirectoryPath($identifier);
         if ($this->format !== \aportela\SimpleFSCache\CacheFormat::NONE) {
@@ -154,6 +154,15 @@ class Cache
                 $this->logger->error("\aportela\SimpleFSCache\Cache::get - Error loading cache file", [$identifier, $e->getMessage(), $e->getCode()]);
                 return (false);
             }
+        } else {
+            return (false);
+        }
+    }
+
+    public function isCached(string $identifier): bool
+    {
+        if ($this->enabled && ! $this->ignoreExistingCache) {
+            return (file_exists($this->getCacheFilePath($identifier)));
         } else {
             return (false);
         }
