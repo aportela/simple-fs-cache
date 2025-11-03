@@ -96,7 +96,7 @@ class Cache
                             throw new \Exception("Error creating cache file path: {$directoryPath}");
                         }
                     }
-                    return (file_put_contents($this->getCacheFilePath($identifier), $raw) > 0);
+                    return (file_put_contents($this->getCacheFilePath($identifier), $raw, LOCK_EX) > 0);
                 } else {
                     $this->logger->info("\aportela\SimpleFSCache\Cache::save - Cache value is empty, saving ignored", [$identifier]);
                     return (false);
