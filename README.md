@@ -22,7 +22,7 @@ composer require aportela/simple-fs-cache
     $logger = new \Psr\Log\NullLogger("");
 
     try {
-        $cachePath = dirname(__FILE__) . DIRECTORY_SEPARATOR . "cache"
+        $cachePath = dirname(__FILE__) . DIRECTORY_SEPARATOR . "cache";
 
         $cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::TXT, $cachePath, false);
 
