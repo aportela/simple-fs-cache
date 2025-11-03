@@ -21,24 +21,29 @@ composer require aportela/simple-fs-cache
 
     $logger = new \Psr\Log\NullLogger("");
 
-    $cachePath = dirname(__FILE__) . DIRECTORY_SEPARATOR . "cache"
+    try {
+        $cachePath = dirname(__FILE__) . DIRECTORY_SEPARATOR . "cache"
 
-    $cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::TXT, $cachePath, false);
+        $cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::TXT, $cachePath, false);
 
-    // json example data
-    $data = json_encode(array("str" => "this is the data to store in cache"));
+        // json example data
+        $data = json_encode(array("str" => "this is the data to store in cache"));
 
-    // you can use another hash algorithm (sha1?) if you don't trust that MD5 value is unique
-    $cacheUniqueIdentifier = md5($data);
+        // you can use another hash algorithm (sha1?) if you don't trust that MD5 value is unique
+        $cacheUniqueIdentifier = md5($data);
 
-    if ($cache->save($cacheUniqueIdentifier, $data)) {
-        $cachedData = $cache->get();
-        if ($cachedData !== false) {
-            echo "Cache load sucessfully, contents: {$cachedData}" . PHP_EOL;
+        if ($cache->save($cacheUniqueIdentifier, $data)) {
+            $cachedData = $cache->get();
+            if ($cachedData !== false) {
+                echo "Cache load sucessfully, contents: {$cachedData}" . PHP_EOL;
+            }
+            $cache->remove($cacheUniqueIdentifier);
+        } else {
+            echo "Error saving cache" . PHP_EOL;
         }
-        $cache->remove($cacheUniqueIdentifier);
-    } else {
-        echo "Error saving cache" . PHP_EOL;
+    } catch (\aportela\SimpleFSCache\Exception\FileSystemException $e) {
+        // this exception is thrown when cache path creation failed
+        echo "Cache filesystem error: " . $e->getMessage();
     }
 ```
 

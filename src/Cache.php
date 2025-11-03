@@ -35,7 +35,7 @@ class Cache
                 $this->logger->info("\aportela\SimpleFSCache\Cache::setBasePath - Creating missing path: {$basePath}");
                 if (! mkdir($basePath, 0750)) {
                     $this->logger->error("\aportela\SimpleFSCache\Cache::__construct - Error creating missing path: {$basePath}");
-                    throw new \Exception("Error creating missing path: {$basePath}");
+                    throw new \aportela\SimpleFSCache\Exception\FileSystemException("Error creating missing path: {$basePath}");
                 }
             }
             $this->basePath = ($basePath = realpath($basePath)) ? $basePath : null;
@@ -93,7 +93,7 @@ class Cache
                     if (! file_exists($directoryPath)) {
                         if (!mkdir($directoryPath, 0750, true)) {
                             $this->logger->error("\aportela\SimpleFSCache\Cache::save - Error creating cache file path", [$identifier, $directoryPath]);
-                            throw new \Exception("Error creating cache file path: {$directoryPath}");
+                            throw new \aportela\SimpleFSCache\Exception\FileSystemException("Error creating cache file path: {$directoryPath}");
                         }
                     }
                     return (file_put_contents($this->getCacheFilePath($identifier), $raw, LOCK_EX) > 0);
