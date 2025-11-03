@@ -24,7 +24,7 @@ composer require aportela/simple-fs-cache
     try {
         $cachePath = dirname(__FILE__) . DIRECTORY_SEPARATOR . "cache";
 
-        $cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::TXT, $cachePath, false);
+        $cache = new \aportela\SimpleFSCache\Cache($logger, \aportela\SimpleFSCache\CacheFormat::TXT, $cachePath, false);
 
         // json example data
         $data = json_encode(array("str" => "this is the data to store in cache"));
@@ -33,7 +33,7 @@ composer require aportela/simple-fs-cache
         $cacheUniqueIdentifier = md5($data);
 
         if ($cache->save($cacheUniqueIdentifier, $data)) {
-            $cachedData = $cache->get();
+            $cachedData = $cache->get($cacheUniqueIdentifier);
             if ($cachedData !== false) {
                 echo "Cache load sucessfully, contents: {$cachedData}" . PHP_EOL;
             }
