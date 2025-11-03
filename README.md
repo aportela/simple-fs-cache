@@ -1,6 +1,6 @@
 # simple-fs-cache
 
-Custom php filesystem cache
+This is a simple library to store and retrieve data from a disk cache (I'm sure there are more serious alternatives but this is my tiny approach to be used in some of my personal projects, should not be taken too seriously).
 
 ## Requirements
 
@@ -25,8 +25,10 @@ composer require aportela/simple-fs-cache
 
     $cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::TXT, $cachePath, false);
 
-    $data = "this is the data to store in cache";
-    // you can use another hash algorithm if you don't trust that MD5 value is unique
+    // json example data
+    $data = json_encode(array("str" => "this is the data to store in cache"));
+
+    // you can use another hash algorithm (sha1?) if you don't trust that MD5 value is unique
     $cacheUniqueIdentifier = md5($data);
 
     if ($cache->save($cacheUniqueIdentifier, $data)) {
