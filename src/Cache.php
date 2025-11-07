@@ -20,9 +20,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         $this->setTTL($ttl);
     }
 
-    public function __destruct()
-    {
-    }
+    public function __destruct() {}
 
     private function hasTTL(): bool
     {
@@ -63,6 +61,17 @@ class Cache implements \Psr\SimpleCache\CacheInterface
             } elseif (is_int($ttl)) {
                 $this->secondsTTL = $ttl;
             }
+        }
+    }
+
+    public function getTTL(): null|int|\DateInterval
+    {
+        if ($this->secondsTTL !== null) {
+            return ($this->secondsTTL);
+        } else if ($this->dateIntervalTTL !== null) {
+            return ($this->dateIntervalTTL);
+        } else {
+            return (null);
         }
     }
 
