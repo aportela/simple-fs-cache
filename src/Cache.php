@@ -26,9 +26,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         }
     }
 
-    public function __destruct()
-    {
-    }
+    public function __destruct() {}
 
     private function getExpireTime(int $time): int
     {
@@ -113,23 +111,23 @@ class Cache implements \Psr\SimpleCache\CacheInterface
             throw new \aportela\SimpleFSCache\Exception\InvalidArgumentException("empty cache key");
         }
         try {
-            $cacheFilePath = $this->getCacheKeyFilePath($key);
-            if (file_exists($cacheFilePath)) {
-                $filemtime = filemtime($cacheFilePath);
+            $path = $this->getCacheKeyFilePath($key);
+            if (file_exists($path)) {
+                $filemtime = filemtime($path);
                 if (is_int($filemtime)) {
                     $expireTime = $this->getExpireTime(time());
                     if ($filemtime > $expireTime) {
-                        return (file_get_contents($cacheFilePath));
+                        return (file_get_contents($path));
                     } else {
                         $this->logger->debug("\aportela\SimpleFSCache\Cache::get - Cache file expired", [$key, $filemtime, $expireTime]);
                         return ($default);
                     }
                 } else {
-                    $this->logger->error("\aportela\SimpleFSCache\Cache::get - Error while getting cache file modification time", [$key, $cacheFilePath]);
+                    $this->logger->error("\aportela\SimpleFSCache\Cache::get - Error while getting cache file modification time", [$key, $path]);
                     return ($default);
                 }
             } else {
-                $this->logger->debug("\aportela\SimpleFSCache\Cache::get - Cache file not found", [$key, $cacheFilePath]);
+                $this->logger->debug("\aportela\SimpleFSCache\Cache::get - Cache file not found", [$key, $path]);
                 return ($default);
             }
         } catch (\Throwable $e) {
