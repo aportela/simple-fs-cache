@@ -26,7 +26,9 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         }
     }
 
-    public function __destruct() {}
+    public function __destruct()
+    {
+    }
 
     private function hasTTL(): bool
     {
