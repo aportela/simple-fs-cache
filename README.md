@@ -28,7 +28,7 @@ composer require aportela/simple-fs-cache
         //$ttl = 60; // cache expires after 60 seconds
         //$ttl = new \DateInterval("PT60M"); // cache expires after 60 minutes
 
-        $cache = new \aportela\SimpleFSCache\Cache($logger, $cachePath, $ttl, \aportela\SimpleFSCache\CacheFormat::TXT);
+        $cache = new \aportela\SimpleFSCache\Cache($logger, $cachePath, $ttl, \aportela\SimpleFSCache\CacheFormat::JSON);
 
         // json example data
         $data = json_encode(array("str" => "this is the data to store in cache"));
