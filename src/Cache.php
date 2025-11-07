@@ -26,7 +26,14 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         }
     }
 
-    public function __destruct() {}
+    public function __destruct()
+    {
+    }
+
+    private function hasTTL(): bool
+    {
+        return ($this->secondsTTL !== null || $this->dateIntervalTTL !== null);
+    }
 
     private function getExpireTime(int $time): int
     {
@@ -38,6 +45,17 @@ class Cache implements \Psr\SimpleCache\CacheInterface
             return ($time + $this->secondsTTL);
         } else {
             return ($time);
+        }
+    }
+
+    private function isExpired(string $cacheFilePath): bool
+    {
+        $filemtime = filemtime($cacheFilePath);
+        if (is_int($filemtime)) {
+            return ($filemtime <= time());
+        } else {
+            $this->logger->error("\aportela\SimpleFSCache\Cache::isExpired - Error while getting cache file modification time", [$cacheFilePath]);
+            return (false);
         }
     }
 
@@ -113,17 +131,15 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         try {
             $path = $this->getCacheKeyFilePath($key);
             if (file_exists($path)) {
-                $filemtime = filemtime($path);
-                if (is_int($filemtime)) {
-                    $expireTime = $this->getExpireTime(time());
-                    if ($filemtime > $expireTime) {
-                        return (file_get_contents($path));
-                    } else {
-                        $this->logger->debug("\aportela\SimpleFSCache\Cache::get - Cache file expired", [$key, $filemtime, $expireTime]);
-                        return ($default);
-                    }
+                if ($this->hasTTL() && $this->isExpired($path)) {
+                    $this->logger->notice("\aportela\SimpleFSCache\Cache::get - Cache file expired", [$key, $path]);
+                    return ($default);
+                }
+                $cacheData = file_get_contents($path);
+                if (is_string($cacheData)) {
+                    return ($cacheData);
                 } else {
-                    $this->logger->error("\aportela\SimpleFSCache\Cache::get - Error while getting cache file modification time", [$key, $path]);
+                    $this->logger->error("\aportela\SimpleFSCache\Cache::get - Invalid cache data content type", [$key, gettype($cacheData)]);
                     return ($default);
                 }
             } else {
@@ -164,7 +180,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
                 $directoryPath = $this->getCacheKeyDirectoryPath($key);
                 if (! file_exists($directoryPath)) {
                     if (!mkdir($directoryPath, 0750, true)) {
-                        $this->logger->error("\aportela\SimpleFSCache\Cache::set - Error while creating cache file path", [$key, $directoryPath]);
+                        $this->logger->error("\aportela\SimpleFSCache\Cache::set - Error while creating cache directory path", [$key, $directoryPath]);
                         return (false);
                     }
                 }
