@@ -26,9 +26,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         }
     }
 
-    public function __destruct()
-    {
-    }
+    public function __destruct() {}
 
     private function hasTTL(): bool
     {
@@ -243,6 +241,23 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         }
     }
 
+    private function deleteDirectory(string $path): bool
+    {
+        $directory = new \DirectoryIterator($path);
+        foreach ($directory as $item) {
+            if ($item->isFile()) {
+                if (!unlink($item->getRealPath())) {
+                    return (false);
+                }
+            } elseif ($item->isDir() && !$item->isDot()) {
+                if (! $this->deleteDirectory($item->getRealPath())) {
+                    return (false);
+                }
+            }
+        }
+        return (rmdir($path));
+    }
+
     /**
      * Wipes clean the entire cache's keys.
      *
@@ -251,9 +266,9 @@ class Cache implements \Psr\SimpleCache\CacheInterface
     public function clear(): bool
     {
         $directory = new \DirectoryIterator($this->basePath);
-        foreach ($directory as $file) {
-            if ($file->isFile()) {
-                if (! unlink($file->getRealPath())) {
+        foreach ($directory as $item) {
+            if ($item->isDir() && !$item->isDot()) {
+                if (! $this->deleteDirectory($item->getRealPath())) {
                     return (false);
                 }
             }
