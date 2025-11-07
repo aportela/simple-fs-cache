@@ -59,7 +59,7 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
 
     public function testGetWithSecondsTtlInSetExpired(): void
     {
-        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, null, \aportela\SimpleFSCache\CacheFormat::TXT);
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, 60, \aportela\SimpleFSCache\CacheFormat::TXT);
         $content = "method => testGetExpired";
         $hash = md5($content);
         $this->assertTrue($this->cache->set($hash, $content, 1));
@@ -89,7 +89,7 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
 
     public function testGetWithDateIntervalInSetTtlExpired(): void
     {
-        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, null, \aportela\SimpleFSCache\CacheFormat::TXT);
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, new \DateInterval("PT1H"), \aportela\SimpleFSCache\CacheFormat::TXT);
         $content = "method => testGetExpired";
         $hash = md5($content);
         $this->assertTrue($this->cache->set($hash, $content, new \DateInterval("PT1S")));
