@@ -17,13 +17,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         $this->logger = $logger;
         $this->setBasePath($basePath);
         $this->format = $format;
-        if ($ttl !== null) {
-            if ($ttl instanceof \DateInterval) {
-                $this->dateIntervalTTL = $ttl;
-            } elseif (is_int($ttl)) {
-                $this->secondsTTL = $ttl;
-            }
-        }
+        $this->setTTL($ttl);
     }
 
     public function __destruct()
@@ -56,6 +50,19 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         } else {
             $this->logger->error("\aportela\SimpleFSCache\Cache::isExpired - Error while getting cache file modification time", [$cacheFilePath]);
             return (false);
+        }
+    }
+
+    public function setTTL(null|int|\DateInterval $ttl = null): void
+    {
+        $this->secondsTTL = null;
+        $this->dateIntervalTTL = null;
+        if ($ttl !== null) {
+            if ($ttl instanceof \DateInterval) {
+                $this->dateIntervalTTL = $ttl;
+            } elseif (is_int($ttl)) {
+                $this->secondsTTL = $ttl;
+            }
         }
     }
 
