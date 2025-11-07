@@ -55,7 +55,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         }
     }
 
-    public function setDefultTTL(null|int|\DateInterval $ttl = null): void
+    public function setDefaultTTL(null|int|\DateInterval $ttl = null): void
     {
         $this->defaultTTL = $ttl;
     }
