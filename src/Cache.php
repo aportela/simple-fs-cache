@@ -156,6 +156,10 @@ class Cache implements \Psr\SimpleCache\CacheInterface
             throw new \aportela\SimpleFSCache\Exception\InvalidArgumentException("empty cache key");
         }
         try {
+            if (! is_string($value)) {
+                $this->logger->error("\aportela\SimpleFSCache\Cache::set - Error while saving cache (unsupported value)", [$key, gettype($value)]);
+                return (false);
+            }
             if (! empty(mb_trim($value))) {
                 $directoryPath = $this->getCacheKeyDirectoryPath($key);
                 if (! file_exists($directoryPath)) {
