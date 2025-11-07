@@ -42,7 +42,7 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
         $this->assertEquals($content, $cachedContent);
     }
 
-    public function testGetWithTtlExpired(): void
+    public function testGetWithSecondsTtlExpired(): void
     {
         $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, 1, \aportela\SimpleFSCache\CacheFormat::TXT);
         $content = "method => testGetExpired";
@@ -57,9 +57,37 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
         $this->assertEquals($default, $cachedContent);
     }
 
-    public function testGetWithTtlNotExpired(): void
+    public function testGetWithDateIntervalTtlExpired(): void
+    {
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, new \DateInterval("PT1S"), \aportela\SimpleFSCache\CacheFormat::TXT);
+        $content = "method => testGetExpired";
+        $hash = md5($content);
+        $this->assertTrue($this->cache->set($hash, $content));
+        sleep(2);
+        $default = "default";
+        $cachedContent = $this->cache->get($hash, $default);
+        $this->assertNotNull($cachedContent);
+        $this->assertIsString($cachedContent);
+        $this->assertNotEmpty($cachedContent);
+        $this->assertEquals($default, $cachedContent);
+    }
+
+    public function testGetWithSecondsTtlNotExpired(): void
     {
         $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, 2, \aportela\SimpleFSCache\CacheFormat::TXT);
+        $content = "method => testGetNotExpired";
+        $hash = md5($content);
+        $this->assertTrue($this->cache->set($hash, $content));
+        $cachedContent = $this->cache->get($hash, "default");
+        $this->assertNotNull($cachedContent);
+        $this->assertIsString($cachedContent);
+        $this->assertNotEmpty($cachedContent);
+        $this->assertEquals($content, $cachedContent);
+    }
+
+    public function testGetWithDateIntervalTtlNotExpired(): void
+    {
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, new \DateInterval("PT2S"), \aportela\SimpleFSCache\CacheFormat::TXT);
         $content = "method => testGetNotExpired";
         $hash = md5($content);
         $this->assertTrue($this->cache->set($hash, $content));
