@@ -98,12 +98,18 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
         $content = "0123456789";
         $hash = md5($content);
         $this->assertTrue($this->cache->set($hash, $content));
-        $path = $this->cache->getCacheKeyDirectoryPath($hash);
+        $path = $this->cache->getCacheKeyFilePath($hash);
         $this->assertNotEmpty($path);
         $this->assertTrue($this->cache->delete($hash));
         if (! empty(parent::$cachePath)) {
             $this->assertStringStartsWith(parent::$cachePath, $path);
             $this->assertStringEndsWith($hash . "." . \aportela\SimpleFSCache\CacheFormat::TXT->value, $path);
         }
+    }
+
+    public function testClear(): void
+    {
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, null, \aportela\SimpleFSCache\CacheFormat::TXT);
+        $this->assertTrue($this->cache->clear());
     }
 }
