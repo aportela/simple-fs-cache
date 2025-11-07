@@ -24,6 +24,7 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
         // empty / invalid paths disable cache
         $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, null, \aportela\SimpleFSCache\CacheFormat::JSON);
         $content = json_encode(["method" => "testSet"]);
+        $this->assertIsString($content);
         $hash = md5($content);
         $this->assertTrue($this->cache->set($hash, $content));
     }
