@@ -26,6 +26,52 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         return ($this->defaultTTL !== null);
     }
 
+    public function setDefaultTTL(null|int|\DateInterval $ttl = null): void
+    {
+        $this->defaultTTL = $ttl;
+    }
+
+    public function getDefaultTTL(): null|int|\DateInterval
+    {
+        return ($this->defaultTTL);
+    }
+
+    public function hasTTL(string $key): bool
+    {
+        return (file_exists($this->getCacheTTLKeyFilePath($key)));
+    }
+
+    private function saveTTL(string $key, int $timestamp): bool
+    {
+        $path = $this->getCacheTTLKeyFilePath($key);
+        $totalBytes = file_put_contents($path, $timestamp, LOCK_EX);
+        if ($totalBytes > 0) {
+            if (touch($path, $timestamp, time())) {
+                return (true);
+            } else {
+                $this->logger->error("\aportela\SimpleFSCache\Cache::saveTTL - Error while touching cache TTL file", [$key, $path]);
+                return (false);
+            }
+        } else {
+            $this->logger->error("\aportela\SimpleFSCache\Cache::saveTTL - Error while saving cache TTL file", [$key, $path]);
+            return (false);
+        }
+    }
+
+    private function removeTTL(string $key): bool
+    {
+        $path = $this->getCacheTTLKeyFilePath($key);
+        if (file_exists($path)) {
+            if (!unlink($path)) {
+                $this->logger->error("\aportela\SimpleFSCache\Cache::set - Error while removing TTL cache file", [$key, $path]);
+                return (false);
+            }
+        } else {
+            $this->logger->error("\aportela\SimpleFSCache\Cache::set - Not removing (missing) TTL cache file", [$key, $path]);
+        }
+        return (true);
+    }
+
     private function getExpireTimeFromTTL(null|int|\DateInterval $ttl): int
     {
         $currentTimestamp = time();
@@ -40,29 +86,21 @@ class Cache implements \Psr\SimpleCache\CacheInterface
                 return ($currentTimestamp);
             }
         } else {
-            return ($currentTimestamp + 1);
+            return ($currentTimestamp);
         }
     }
 
-    private function isExpired(string $cacheFilePath): bool
+    public function isExpired(string $key): bool
     {
-        $filemtime = filemtime($cacheFilePath);
+        $path = $this->getCacheTTLKeyFilePath($key);
+        $filemtime = filemtime($path);
+        $currentTimestamp = time();
         if (is_int($filemtime)) {
-            return ($filemtime <= time());
+            return ($filemtime <= $currentTimestamp);
         } else {
-            $this->logger->error("\aportela\SimpleFSCache\Cache::isExpired - Error while getting cache file modification time", [$cacheFilePath]);
+            $this->logger->error("\aportela\SimpleFSCache\Cache::isExpired - Error while getting cache TTL file modification time", [$key, $path, $filemtime, $currentTimestamp]);
             return (false);
         }
-    }
-
-    public function setDefaultTTL(null|int|\DateInterval $ttl = null): void
-    {
-        $this->defaultTTL = $ttl;
-    }
-
-    public function getDefaultTTL(): null|int|\DateInterval
-    {
-        return ($this->defaultTTL);
     }
 
     public function setBasePath(string $basePath): void
@@ -118,6 +156,11 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         }
     }
 
+    public function getCacheTTLKeyFilePath(string $key): string
+    {
+        return ($this->getCacheKeyDirectoryPath($key) . DIRECTORY_SEPARATOR . $key . ".ttl");
+    }
+
     /**
      * Fetches a value from the cache.
      *
@@ -137,11 +180,8 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         try {
             $path = $this->getCacheKeyFilePath($key);
             if (file_exists($path)) {
-                /**
-                 * Note: We must use the same defaultTTL parameter in the constructor when calling the set method and when calling the get method; otherwise, it won't work correctly.
-                 */
-                if ($this->hasDefaultTTL() && $this->isExpired($path)) {
-                    $this->logger->notice("\aportela\SimpleFSCache\Cache::get - Cache file expired", [$key, $path]);
+                if ($this->hasTTL($key) && $this->isExpired($key)) {
+                    $this->logger->notice("\aportela\SimpleFSCache\Cache::get - Cache file expired", [$key]);
                     return ($default);
                 }
                 $cacheData = file_get_contents($path);
@@ -197,15 +237,13 @@ class Cache implements \Psr\SimpleCache\CacheInterface
                 $totalBytes = file_put_contents($path, $value, LOCK_EX);
                 if ($totalBytes > 0) {
                     if ($ttl !== null || $this->hasDefaultTTL()) {
-                        // set file modification time to the (future?) expiration date (from now) using TTL (if found)
-                        if (touch($path, $this->getExpireTimeFromTTL($ttl ?? $this->defaultTTL), time())) {
-                            return (true);
+                        if ($this->removeTTL($key)) {
+                            return ($this->saveTTL($key, $this->getExpireTimeFromTTL($ttl ?? $this->defaultTTL)));
                         } else {
-                            $this->logger->error("\aportela\SimpleFSCache\Cache::set - Error while touching cache file", [$key, $path]);
                             return (false);
                         }
                     } else {
-                        return (true);
+                        return ($this->removeTTL($key));
                     }
                 } else {
                     $this->logger->error("\aportela\SimpleFSCache\Cache::set - Error while saving cache file", [$key, $path]);
