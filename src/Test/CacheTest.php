@@ -19,91 +19,137 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
         parent::setUpBeforeClass();
     }
 
-    public function testEnabled(): void
-    {
-        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::NONE, parent::$cachePath);
-        $this->assertTrue($this->cache->isEnabled());
-        $basePath = $this->cache->getBasePath();
-        $this->assertNotNull($basePath);
-        $this->assertEquals(parent::$cachePath, $basePath);
-        $this->assertEquals(\aportela\SimpleFSCache\CacheFormat::NONE, $this->cache->getFormat());
-    }
-
-    public function testDisabled(): void
+    public function testSetWithoutTtl(): void
     {
         // empty / invalid paths disable cache
-        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::NONE, null);
-        $this->assertFalse($this->cache->isEnabled());
-        $basePath = $this->cache->getBasePath();
-        $this->assertNull($basePath);
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, null, \aportela\SimpleFSCache\CacheFormat::JSON);
+        $content = json_encode(["method" => "testSet"]);
+        $this->assertIsString($content);
+        $hash = md5($content);
+        $this->assertTrue($this->cache->set($hash, $content));
     }
 
-
-    public function testSave(): void
+    public function testGetWithoutTtl(): void
     {
-        // empty / invalid paths disable cache
-        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::JSON, parent::$cachePath);
-        $content = "{}";
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, null, \aportela\SimpleFSCache\CacheFormat::TXT);
+        $content = "method => testGet";
         $hash = md5($content);
-        $this->assertTrue($this->cache->save($hash, $content));
-    }
-
-    public function testGet(): void
-    {
-        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::TXT, parent::$cachePath);
-        $content = "foobar1";
-        $hash = md5($content);
-        $this->assertTrue($this->cache->save($hash, $content));
-        $cachedContent = $this->cache->get($hash);
-        $this->assertTrue($cachedContent !== false);
+        $this->assertTrue($this->cache->set($hash, $content));
+        $cachedContent = $this->cache->get($hash, null);
+        $this->assertNotNull($cachedContent);
         $this->assertIsString($cachedContent);
         $this->assertNotEmpty($cachedContent);
         $this->assertEquals($content, $cachedContent);
     }
 
-    public function testGetIgnoringExistingCache(): void
+    public function testGetWithSecondsTtlExpired(): void
     {
-        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::TXT, parent::$cachePath, true);
-        $content = "foobar2";
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, 1, \aportela\SimpleFSCache\CacheFormat::TXT);
+        $content = "method => testGetExpired";
         $hash = md5($content);
-        $this->assertTrue($this->cache->save($hash, $content));
-        $this->assertFalse($this->cache->get($hash));
+        $this->assertTrue($this->cache->set($hash, $content));
+        sleep(2);
+        $default = "default";
+        $cachedContent = $this->cache->get($hash, $default);
+        $this->assertNotNull($cachedContent);
+        $this->assertIsString($cachedContent);
+        $this->assertNotEmpty($cachedContent);
+        $this->assertEquals($default, $cachedContent);
     }
 
-    public function testRemove(): void
+    public function testGetWithDateIntervalTtlExpired(): void
     {
-        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::NONE, parent::$cachePath);
-        $content = "0123456789";
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, new \DateInterval("PT1S"), \aportela\SimpleFSCache\CacheFormat::TXT);
+        $content = "method => testGetExpired";
         $hash = md5($content);
-        $this->assertTrue($this->cache->save($hash, $content));
-        $this->assertTrue($this->cache->remove($hash));
+        $this->assertTrue($this->cache->set($hash, $content));
+        sleep(2);
+        $default = "default";
+        $cachedContent = $this->cache->get($hash, $default);
+        $this->assertNotNull($cachedContent);
+        $this->assertIsString($cachedContent);
+        $this->assertNotEmpty($cachedContent);
+        $this->assertEquals($default, $cachedContent);
+    }
+
+    public function testGetWithSecondsTtlNotExpired(): void
+    {
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, 2, \aportela\SimpleFSCache\CacheFormat::TXT);
+        $content = "method => testGetNotExpired";
+        $hash = md5($content);
+        $this->assertTrue($this->cache->set($hash, $content));
+        $cachedContent = $this->cache->get($hash, "default");
+        $this->assertNotNull($cachedContent);
+        $this->assertIsString($cachedContent);
+        $this->assertNotEmpty($cachedContent);
+        $this->assertEquals($content, $cachedContent);
+    }
+
+    public function testGetWithDateIntervalTtlNotExpired(): void
+    {
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, new \DateInterval("PT2S"), \aportela\SimpleFSCache\CacheFormat::TXT);
+        $content = "method => testGetNotExpired";
+        $hash = md5($content);
+        $this->assertTrue($this->cache->set($hash, $content));
+        $cachedContent = $this->cache->get($hash, "default");
+        $this->assertNotNull($cachedContent);
+        $this->assertIsString($cachedContent);
+        $this->assertNotEmpty($cachedContent);
+        $this->assertEquals($content, $cachedContent);
+    }
+
+    public function testDelete(): void
+    {
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, null, \aportela\SimpleFSCache\CacheFormat::TXT);
+        $content = "method => testDelete";
+        $hash = md5($content);
+        $this->assertTrue($this->cache->set($hash, $content));
+        $this->assertTrue($this->cache->delete($hash));
     }
 
     public function testGetCacheDirectoryPath(): void
     {
-        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::NONE, parent::$cachePath);
-        $content = "0123456789";
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, null, \aportela\SimpleFSCache\CacheFormat::NONE);
+        $content = strval(microtime(true));
         $hash = md5($content);
-        $this->assertTrue($this->cache->save($hash, $content));
-        $path = $this->cache->getCacheDirectoryPath($hash);
-        $this->assertTrue($this->cache->remove($hash));
+        $this->assertTrue($this->cache->set($hash, $content));
+        $path = $this->cache->getCacheKeyDirectoryPath($hash);
         if (! empty(parent::$cachePath)) {
             $this->assertStringStartsWith(parent::$cachePath, $path);
         }
     }
 
-    public function testGetCacheFilePath(): void
+    public function testGetCacheFilePathWithExtension(): void
     {
-        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, \aportela\SimpleFSCache\CacheFormat::TXT, parent::$cachePath);
-        $content = "0123456789";
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, null, \aportela\SimpleFSCache\CacheFormat::TXT);
+        $content = strval(microtime(true));
         $hash = md5($content);
-        $this->assertTrue($this->cache->save($hash, $content));
-        $path = $this->cache->getCacheFilePath($hash);
+        $this->assertTrue($this->cache->set($hash, $content));
+        $path = $this->cache->getCacheKeyFilePath($hash);
         $this->assertNotEmpty($path);
-        $this->assertTrue($this->cache->remove($hash));
         if (! empty(parent::$cachePath)) {
             $this->assertStringStartsWith(parent::$cachePath, $path);
             $this->assertStringEndsWith($hash . "." . \aportela\SimpleFSCache\CacheFormat::TXT->value, $path);
         }
+    }
+
+    public function testGetCacheFilePathWithoutExtension(): void
+    {
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, null, \aportela\SimpleFSCache\CacheFormat::NONE);
+        $content = strval(microtime(true));
+        $hash = md5($content);
+        $this->assertTrue($this->cache->set($hash, $content));
+        $path = $this->cache->getCacheKeyFilePath($hash);
+        $this->assertNotEmpty($path);
+        if (! empty(parent::$cachePath)) {
+            $this->assertStringStartsWith(parent::$cachePath, $path);
+            $this->assertStringEndsWith($hash, $path);
+        }
+    }
+
+    public function testClear(): void
+    {
+        $this->cache = new \aportela\SimpleFSCache\Cache(parent::$logger, parent::$cachePath, null, \aportela\SimpleFSCache\CacheFormat::TXT);
+        $this->assertTrue($this->cache->clear());
     }
 }
