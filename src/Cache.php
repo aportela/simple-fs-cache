@@ -19,9 +19,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         $this->defaultTTL = $defaultTTL;
     }
 
-    public function __destruct()
-    {
-    }
+    public function __destruct() {}
 
     private function hasDefaultTTL(): bool
     {
@@ -355,10 +353,10 @@ class Cache implements \Psr\SimpleCache\CacheInterface
     /**
      * Persists a set of key => value pairs in the cache, with an optional TTL.
      *
-     * @param iterable               $values A list of key => value pairs for a multiple-set operation.
-     * @param null|int|\DateInterval $ttl    Optional. The TTL value of this item. If no value is sent and
-     *                                       the driver supports TTL then the library may set a default value
-     *                                       for it or let the driver take care of that.
+     * @param iterable<string, mixed> $values   A list of key => value pairs for a multiple-set operation.
+     * @param null|int|\DateInterval $ttl       Optional. The TTL value of this item. If no value is sent and
+     *                                          the driver supports TTL then the library may set a default value
+     *                                          for it or let the driver take care of that.
      *
      * @return bool True on success and false on failure.
      *
