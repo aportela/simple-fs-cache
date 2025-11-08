@@ -158,7 +158,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
 
     public function getCacheTTLKeyFilePath(string $key): string
     {
-        return ($this->getCacheKeyDirectoryPath($key) . DIRECTORY_SEPARATOR . $key . ".ttl");
+        return ($this->getCacheKeyFilePath($key) . ".ttl");
     }
 
     /**
