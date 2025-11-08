@@ -19,7 +19,9 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         $this->defaultTTL = $defaultTTL;
     }
 
-    public function __destruct() {}
+    public function __destruct()
+    {
+    }
 
     private function hasDefaultTTL(): bool
     {
@@ -80,10 +82,8 @@ class Cache implements \Psr\SimpleCache\CacheInterface
                 $dateTime = new \DateTime();
                 $dateTime->setTimestamp($currentTimestamp);
                 return ($dateTime->add($ttl)->getTimestamp());
-            } elseif (is_int($ttl)) {
-                return ($currentTimestamp + $ttl);
             } else {
-                return ($currentTimestamp);
+                return ($currentTimestamp + $ttl);
             }
         } else {
             return ($currentTimestamp);
