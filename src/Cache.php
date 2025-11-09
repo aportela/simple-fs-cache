@@ -45,7 +45,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
     {
         $path = $this->getCacheTTLKeyFilePath($key);
         $totalBytes = file_put_contents($path, $timestamp, LOCK_EX);
-        if (is_integer($totalBytes) && $totalBytes > 0) {
+        if (is_int($totalBytes) && $totalBytes > 0) {
             return (true);
         } else {
             $this->logger->error("\aportela\SimpleFSCache\Cache::saveTTL - Error while saving cache TTL file", [$key, $path]);
