@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace aportela\SimpleFSCache\Test;
 
-require_once dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . "vendor" . DIRECTORY_SEPARATOR . "autoload.php";
+require_once dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . "vendor" . DIRECTORY_SEPARATOR . "autoload.php";
 
 
 final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
 {
-    protected \aportela\SimpleFSCache\Cache $cache;
+    private \aportela\SimpleFSCache\Cache $cache;
 
     /**
      * Called once just like normal constructor
      */
+    #[\Override]
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
@@ -35,7 +36,7 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
         $content = "method => testGet";
         $hash = md5($content);
         $this->assertTrue($this->cache->set($hash, $content));
-        $cachedContent = $this->cache->get($hash, null);
+        $cachedContent = $this->cache->get($hash);
         $this->assertNotNull($cachedContent);
         $this->assertIsString($cachedContent);
         $this->assertNotEmpty($cachedContent);
@@ -144,7 +145,7 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
         $hash = md5($content);
         $this->assertTrue($this->cache->set($hash, $content));
         $path = $this->cache->getCacheKeyDirectoryPath($hash);
-        if (! empty(parent::$cachePath)) {
+        if (parent::$cachePath !== '' && parent::$cachePath !== '0') {
             $this->assertStringStartsWith(parent::$cachePath, $path);
         }
     }
@@ -157,7 +158,7 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
         $this->assertTrue($this->cache->set($hash, $content));
         $path = $this->cache->getCacheKeyFilePath($hash);
         $this->assertNotEmpty($path);
-        if (! empty(parent::$cachePath)) {
+        if (parent::$cachePath !== '' && parent::$cachePath !== '0') {
             $this->assertStringStartsWith(parent::$cachePath, $path);
             $this->assertStringEndsWith($hash . "." . \aportela\SimpleFSCache\CacheFormat::TXT->value, $path);
         }
@@ -171,7 +172,7 @@ final class CacheTest extends \aportela\SimpleFSCache\Test\BaseTest
         $this->assertTrue($this->cache->set($hash, $content));
         $path = $this->cache->getCacheKeyFilePath($hash);
         $this->assertNotEmpty($path);
-        if (! empty(parent::$cachePath)) {
+        if (parent::$cachePath !== '' && parent::$cachePath !== '0') {
             $this->assertStringStartsWith(parent::$cachePath, $path);
             $this->assertStringEndsWith($hash, $path);
         }

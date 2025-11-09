@@ -1,25 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace aportela\SimpleFSCache;
 
 class Cache implements \Psr\SimpleCache\CacheInterface
 {
-    protected \Psr\Log\LoggerInterface $logger;
-
     private string $basePath;
-    private null|int|\DateInterval $defaultTTL = null;
 
-    private \aportela\SimpleFSCache\CacheFormat $format;
-
-    public function __construct(\Psr\Log\LoggerInterface $logger, string $basePath, null|int|\DateInterval $defaultTTL = null, \aportela\SimpleFSCache\CacheFormat $format = \aportela\SimpleFSCache\CacheFormat::NONE)
+    public function __construct(protected \Psr\Log\LoggerInterface $logger, string $basePath, private null|int|\DateInterval $defaultTTL = null, private \aportela\SimpleFSCache\CacheFormat $cacheFormat = \aportela\SimpleFSCache\CacheFormat::NONE)
     {
-        $this->logger = $logger;
         $this->setBasePath($basePath);
-        $this->format = $format;
-        $this->defaultTTL = $defaultTTL;
     }
-
-    public function __destruct() {}
 
     private function hasDefaultTTL(): bool
     {
@@ -48,7 +40,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         if (is_int($totalBytes) && $totalBytes > 0) {
             return (true);
         } else {
-            $this->logger->error("\aportela\SimpleFSCache\Cache::saveTTL - Error while saving cache TTL file", [$key, $path]);
+            $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::saveTTL - Error while saving cache TTL file', [$key, $path]);
             return (false);
         }
     }
@@ -58,12 +50,13 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         $path = $this->getCacheTTLKeyFilePath($key);
         if (file_exists($path)) {
             if (!unlink($path)) {
-                $this->logger->error("\aportela\SimpleFSCache\Cache::set - Error while removing TTL cache file", [$key, $path]);
+                $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::set - Error while removing TTL cache file', [$key, $path]);
                 return (false);
             }
         } else {
-            $this->logger->error("\aportela\SimpleFSCache\Cache::set - Not removing (missing) TTL cache file", [$key, $path]);
+            $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::set - Not removing (missing) TTL cache file', [$key, $path]);
         }
+
         return (true);
     }
 
@@ -90,30 +83,31 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         if (is_string($ttl)) {
             return (intval($ttl) <= time());
         } else {
-            $this->logger->error("\aportela\SimpleFSCache\Cache::isExpired - Error while getting cache TTL timestamp", [$key, $path, $ttl]);
+            $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::isExpired - Error while getting cache TTL timestamp', [$key, $path, $ttl]);
             return (false);
         }
     }
 
     public function setBasePath(string $basePath): void
     {
-        if (! empty($basePath)) {
+        if ($basePath !== '' && $basePath !== '0') {
             if (!file_exists(($basePath))) {
-                $this->logger->info("\aportela\SimpleFSCache\Cache::setBasePath - Creating missing path: {$basePath}");
+                $this->logger->info(\aportela\SimpleFSCache\Cache::class . '::setBasePath - Creating missing path: ' . $basePath);
                 if (! mkdir($basePath, 0750)) {
-                    $this->logger->error("\aportela\SimpleFSCache\Cache::setBasePath - Error while creating missing path: {$basePath}");
-                    throw new \aportela\SimpleFSCache\Exception\CacheException("Error while creating missing path: {$basePath}");
+                    $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::setBasePath - Error while creating missing path: ' . $basePath);
+                    throw new \aportela\SimpleFSCache\Exception\CacheException('Error while creating missing path: ' . $basePath);
                 }
             }
+
             $path = realpath($basePath);
-            if (is_string($path) && ! empty($path)) {
+            if (is_string($path)) {
                 $this->basePath = $path;
             } else {
-                $this->logger->error("\aportela\SimpleFSCache\Cache::setBasePath - Error: invalid path {$basePath}");
-                throw new \aportela\SimpleFSCache\Exception\InvalidArgumentException("invalid path {$basePath}");
+                $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::setBasePath - Error: invalid path ' . $basePath);
+                throw new \aportela\SimpleFSCache\Exception\InvalidArgumentException('invalid path ' . $basePath);
             }
         } else {
-            $this->logger->error("\aportela\SimpleFSCache\Cache::setBasePath - empty path");
+            $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::setBasePath - empty path');
             throw new \aportela\SimpleFSCache\Exception\InvalidArgumentException("empty path");
         }
     }
@@ -123,14 +117,14 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         return ($this->basePath);
     }
 
-    public function setFormat(\aportela\SimpleFSCache\CacheFormat $format): void
+    public function setFormat(\aportela\SimpleFSCache\CacheFormat $cacheFormat): void
     {
-        $this->format = $format;
+        $this->cacheFormat = $cacheFormat;
     }
 
     public function getFormat(): \aportela\SimpleFSCache\CacheFormat
     {
-        return ($this->format);
+        return ($this->cacheFormat);
     }
 
     public function getCacheKeyDirectoryPath(string $key): string
@@ -141,8 +135,8 @@ class Cache implements \Psr\SimpleCache\CacheInterface
     public function getCacheKeyFilePath(string $key): string
     {
         $basePath = $this->getCacheKeyDirectoryPath($key);
-        if ($this->format !== \aportela\SimpleFSCache\CacheFormat::NONE) {
-            return (sprintf("%s%s%s.%s", $basePath, DIRECTORY_SEPARATOR, $key, $this->format->value));
+        if ($this->cacheFormat !== \aportela\SimpleFSCache\CacheFormat::NONE) {
+            return (sprintf("%s%s%s.%s", $basePath, DIRECTORY_SEPARATOR, $key, $this->cacheFormat->value));
         } else {
             return ($basePath . DIRECTORY_SEPARATOR . $key);
         }
@@ -166,29 +160,31 @@ class Cache implements \Psr\SimpleCache\CacheInterface
      */
     public function get(string $key, mixed $default = null): mixed
     {
-        if (empty($key)) {
+        if ($key === '' || $key === '0') {
             throw new \aportela\SimpleFSCache\Exception\InvalidArgumentException("empty cache key");
         }
+
         try {
             $path = $this->getCacheKeyFilePath($key);
             if (file_exists($path)) {
                 if ($this->hasTTL($key) && $this->isExpired($key)) {
-                    $this->logger->notice("\aportela\SimpleFSCache\Cache::get - Cache file expired", [$key]);
+                    $this->logger->notice(\aportela\SimpleFSCache\Cache::class . '::get - Cache file expired', [$key]);
                     return ($default);
                 }
+
                 $cacheData = file_get_contents($path);
                 if (is_string($cacheData)) {
                     return ($cacheData);
                 } else {
-                    $this->logger->error("\aportela\SimpleFSCache\Cache::get - Invalid cache data content type", [$key, gettype($cacheData)]);
+                    $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::get - Invalid cache data content type', [$key, gettype($cacheData)]);
                     return ($default);
                 }
             } else {
-                $this->logger->debug("\aportela\SimpleFSCache\Cache::get - Cache file not found", [$key, $path]);
+                $this->logger->debug(\aportela\SimpleFSCache\Cache::class . '::get - Cache file not found', [$key, $path]);
                 return ($default);
             }
-        } catch (\Throwable $e) {
-            $this->logger->error("\aportela\SimpleFSCache\Cache::get - Error while loading cache file (unhandled exception)", [$key, $e->getMessage(), $e->getCode()]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::get - Error while loading cache file (unhandled exception)', [$key, $throwable->getMessage(), $throwable->getCode()]);
             return ($default);
         }
     }
@@ -209,22 +205,23 @@ class Cache implements \Psr\SimpleCache\CacheInterface
      */
     public function set(string $key, mixed $value, null|int|\DateInterval $ttl = null): bool
     {
-        if (empty($key)) {
+        if ($key === '' || $key === '0') {
             throw new \aportela\SimpleFSCache\Exception\InvalidArgumentException("empty cache key");
         }
+
         try {
             if (! is_string($value)) {
-                $this->logger->error("\aportela\SimpleFSCache\Cache::set - Error while saving cache (unsupported value)", [$key, gettype($value)]);
+                $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::set - Error while saving cache (unsupported value)', [$key, gettype($value)]);
                 return (false);
             }
-            if (! empty(mb_trim($value))) {
+
+            if (!in_array(mb_trim($value), ['', '0'], true)) {
                 $directoryPath = $this->getCacheKeyDirectoryPath($key);
-                if (! file_exists($directoryPath)) {
-                    if (!mkdir($directoryPath, 0750, true)) {
-                        $this->logger->error("\aportela\SimpleFSCache\Cache::set - Error while creating cache directory path", [$key, $directoryPath]);
-                        return (false);
-                    }
+                if (!file_exists($directoryPath) && !mkdir($directoryPath, 0750, true)) {
+                    $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::set - Error while creating cache directory path', [$key, $directoryPath]);
+                    return (false);
                 }
+
                 $path = $this->getCacheKeyFilePath($key);
                 $totalBytes = file_put_contents($path, $value, LOCK_EX);
                 if ($totalBytes > 0) {
@@ -238,15 +235,15 @@ class Cache implements \Psr\SimpleCache\CacheInterface
                         return ($this->removeTTL($key));
                     }
                 } else {
-                    $this->logger->error("\aportela\SimpleFSCache\Cache::set - Error while saving cache file", [$key, $path]);
+                    $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::set - Error while saving cache file', [$key, $path]);
                     return (false);
                 }
             } else {
-                $this->logger->info("\aportela\SimpleFSCache\Cache::set - Cache value is empty, saving ignored", [$key]);
+                $this->logger->info(\aportela\SimpleFSCache\Cache::class . '::set - Cache value is empty, saving ignored', [$key]);
                 return (false);
             }
-        } catch (\Throwable $e) {
-            $this->logger->error("\aportela\SimpleFSCache\Cache::set - Error while saving cache (unhandled exception)", [$key, $e->getMessage(), $e->getCode()]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::set - Error while saving cache (unhandled exception)', [$key, $throwable->getMessage(), $throwable->getCode()]);
             return (false);
         }
     }
@@ -263,24 +260,25 @@ class Cache implements \Psr\SimpleCache\CacheInterface
      */
     public function delete(string $key): bool
     {
-        if (empty($key)) {
+        if ($key === '' || $key === '0') {
             throw new \aportela\SimpleFSCache\Exception\InvalidArgumentException("empty cache key");
         }
+
         try {
             $path = $this->getCacheKeyFilePath($key);
             if (file_exists($path)) {
                 if (unlink($path)) {
                     return (true);
                 } else {
-                    $this->logger->error("\aportela\SimpleFSCache\Cache::delete - Error deleting cache file", [$key, $path]);
+                    $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::delete - Error deleting cache file', [$key, $path]);
                     return (false);
                 }
             } else {
-                $this->logger->info("\aportela\SimpleFSCache\Cache::delete - Cache file not found, ignoring delete", [$key, $path]);
+                $this->logger->info(\aportela\SimpleFSCache\Cache::class . '::delete - Cache file not found, ignoring delete', [$key, $path]);
                 return (true);
             }
-        } catch (\Throwable $e) {
-            $this->logger->error("\aportela\SimpleFSCache\Cache::delete - Error deleting cache (unhandled exception)", [$key, $e->getMessage(), $e->getCode()]);
+        } catch (\Throwable $throwable) {
+            $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::delete - Error deleting cache (unhandled exception)', [$key, $throwable->getMessage(), $throwable->getCode()]);
             return (false);
         }
     }
@@ -299,6 +297,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
                 }
             }
         }
+
         return (rmdir($path));
     }
 
@@ -311,12 +310,11 @@ class Cache implements \Psr\SimpleCache\CacheInterface
     {
         $directory = new \DirectoryIterator($this->basePath);
         foreach ($directory as $item) {
-            if ($item->isDir() && !$item->isDot()) {
-                if (! $this->deleteDirectory($item->getRealPath())) {
-                    return (false);
-                }
+            if ($item->isDir() && !$item->isDot() && ! $this->deleteDirectory($item->getRealPath())) {
+                return (false);
             }
         }
+
         return (true);
     }
 
@@ -339,8 +337,10 @@ class Cache implements \Psr\SimpleCache\CacheInterface
             if (empty($key)) {
                 throw new \aportela\SimpleFSCache\Exception\InvalidArgumentException("empty cache key");
             }
+
             $data[$key] = $this->get($key, $default);
         }
+
         return ($data);
     }
 
@@ -364,10 +364,12 @@ class Cache implements \Psr\SimpleCache\CacheInterface
             if (empty($key)) {
                 throw new \aportela\SimpleFSCache\Exception\InvalidArgumentException("empty cache key");
             }
+
             if (!$this->set($key, $value, $ttl)) {
                 return (false);
             }
         }
+
         return (true);
     }
 
@@ -388,10 +390,12 @@ class Cache implements \Psr\SimpleCache\CacheInterface
             if (empty($key)) {
                 throw new \aportela\SimpleFSCache\Exception\InvalidArgumentException("empty cache key");
             }
+
             if (! $this->delete($key)) {
                 return (false);
             }
         }
+
         return (true);
     }
 
@@ -405,16 +409,16 @@ class Cache implements \Psr\SimpleCache\CacheInterface
      *
      * @param string $key The cache item key.
      *
-     * @return bool
      *
      * @throws \Psr\SimpleCache\InvalidArgumentException
      *   MUST be thrown if the $key string is not a legal value.
      */
     public function has(string $key): bool
     {
-        if (empty($key)) {
+        if ($key === '' || $key === '0') {
             throw new \aportela\SimpleFSCache\Exception\InvalidArgumentException("empty cache key");
         }
+
         return (file_exists($this->getCacheKeyFilePath($key)));
     }
 }

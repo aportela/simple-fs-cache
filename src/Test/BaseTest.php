@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace aportela\SimpleFSCache\Test;
 
-require_once dirname(dirname(__DIR__)) . DIRECTORY_SEPARATOR . "vendor" . DIRECTORY_SEPARATOR . "autoload.php";
+require_once dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . "vendor" . DIRECTORY_SEPARATOR . "autoload.php";
 
-class BaseTest extends \PHPUnit\Framework\TestCase
+abstract class BaseTest extends \PHPUnit\Framework\TestCase
 {
     protected static \Psr\Log\NullLogger $logger;
 
@@ -18,28 +18,22 @@ class BaseTest extends \PHPUnit\Framework\TestCase
     public static function setUpBeforeClass(): void
     {
         self::$logger = new \Psr\Log\NullLogger();
-        self::$cachePath = dirname(dirname(dirname(__FILE__))) . DIRECTORY_SEPARATOR . "cache";
+        self::$cachePath = dirname(__FILE__, 3) . DIRECTORY_SEPARATOR . "cache";
     }
 
     /**
      * Initialize the test case
      * Called for every defined test
      */
-    public function setUp(): void
-    {
-    }
+    protected function setUp(): void {}
 
     /**
      * Clean up the test case, called for every defined test
      */
-    public function tearDown(): void
-    {
-    }
+    protected function tearDown(): void {}
 
     /**
      * Clean up the whole test class
      */
-    public static function tearDownAfterClass(): void
-    {
-    }
+    public static function tearDownAfterClass(): void {}
 }
