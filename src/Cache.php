@@ -8,7 +8,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
 {
     private string $basePath;
 
-    public function __construct(protected \Psr\Log\LoggerInterface $logger, string $basePath, private null|int|\DateInterval $defaultTTL = null, private \aportela\SimpleFSCache\CacheFormat $cacheFormat = \aportela\SimpleFSCache\CacheFormat::NONE)
+    public function __construct(protected \Psr\Log\LoggerInterface $logger, string $basePath, private int|\DateInterval|null $defaultTTL = null, private \aportela\SimpleFSCache\CacheFormat $cacheFormat = \aportela\SimpleFSCache\CacheFormat::NONE)
     {
         $this->setBasePath($basePath);
     }
@@ -18,12 +18,12 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         return ($this->defaultTTL !== null);
     }
 
-    public function setDefaultTTL(null|int|\DateInterval $ttl = null): void
+    public function setDefaultTTL(int|\DateInterval|null $ttl = null): void
     {
         $this->defaultTTL = $ttl;
     }
 
-    public function getDefaultTTL(): null|int|\DateInterval
+    public function getDefaultTTL(): int|\DateInterval|null
     {
         return ($this->defaultTTL);
     }
@@ -60,7 +60,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         return (true);
     }
 
-    private function getExpireTimeFromTTL(null|int|\DateInterval $ttl): int
+    private function getExpireTimeFromTTL(int|\DateInterval|null $ttl): int
     {
         $currentTimestamp = time();
         if ($ttl !== null) {
@@ -93,7 +93,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
         if ($basePath !== '' && $basePath !== '0') {
             if (!file_exists(($basePath))) {
                 $this->logger->info(\aportela\SimpleFSCache\Cache::class . '::setBasePath - Creating missing path: ' . $basePath);
-                if (! mkdir($basePath, 0750)) {
+                if (! mkdir($basePath, 0o750)) {
                     $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::setBasePath - Error while creating missing path: ' . $basePath);
                     throw new \aportela\SimpleFSCache\Exception\CacheException('Error while creating missing path: ' . $basePath);
                 }
@@ -203,7 +203,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
      * @throws \Psr\SimpleCache\InvalidArgumentException
      *   MUST be thrown if the $key string is not a legal value.
      */
-    public function set(string $key, mixed $value, null|int|\DateInterval $ttl = null): bool
+    public function set(string $key, mixed $value, int|\DateInterval|null $ttl = null): bool
     {
         if ($key === '' || $key === '0') {
             throw new \aportela\SimpleFSCache\Exception\InvalidArgumentException("empty cache key");
@@ -217,7 +217,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
 
             if (!in_array(mb_trim($value), ['', '0'], true)) {
                 $directoryPath = $this->getCacheKeyDirectoryPath($key);
-                if (!file_exists($directoryPath) && !mkdir($directoryPath, 0750, true)) {
+                if (!file_exists($directoryPath) && !mkdir($directoryPath, 0o750, true)) {
                     $this->logger->error(\aportela\SimpleFSCache\Cache::class . '::set - Error while creating cache directory path', [$key, $directoryPath]);
                     return (false);
                 }
@@ -358,7 +358,7 @@ class Cache implements \Psr\SimpleCache\CacheInterface
      *   MUST be thrown if $values is neither an array nor a Traversable,
      *   or if any of the $values are not a legal value.
      */
-    public function setMultiple(iterable $values, null|int|\DateInterval $ttl = null): bool
+    public function setMultiple(iterable $values, int|\DateInterval|null $ttl = null): bool
     {
         foreach ($values as $key => $value) {
             if (empty($key)) {
